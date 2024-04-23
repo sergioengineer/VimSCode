@@ -24,10 +24,8 @@ export class VimModeController implements IEditorContribution {
 	constructor(editor: ICodeEditor) {
 		this.editor = editor;
 		this.mode = VimMode.Normal;
+
 		this.updateCursorStyle();
-		editor.onKeyDown((evt) => {
-			this.switchMode();
-		});
 	}
 
 	public static get(editor: ICodeEditor): VimModeController | null {
@@ -57,8 +55,8 @@ export class VimModeController implements IEditorContribution {
 			options.cursorStyle = 'underline-thin';
 		}
 
+		console.log(options.cursorStyle);
 		this.editor.updateOptions(options);
-		setTimeout(() => this.editor.render(true), 1000);
 	}
 
 	dispose(): void {}

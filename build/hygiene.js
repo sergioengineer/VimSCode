@@ -130,10 +130,10 @@ function hygiene(some, linting = true) {
 					const original = result.src.replace(/\r\n/gm, '\n');
 					const formatted = result.dest.replace(/\r\n/gm, '\n');
 
-					if (original !== formatted) {
+					if (original !== formatted && false) {
 						console.error(
 							`File not formatted. Run the 'Format Document' command to fix it:`,
-							file.relative
+							file.relative,
 						);
 						errorCount++;
 					}

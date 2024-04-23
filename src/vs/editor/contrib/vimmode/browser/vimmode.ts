@@ -14,15 +14,14 @@ import {
 } from 'vs/editor/browser/editorExtensions';
 import { IEditorContribution } from 'vs/editor/common/editorCommon';
 import { EditorContextKeys } from 'vs/editor/common/editorContextKeys';
+import { ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
 import { KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
 
 export class VimModeController implements IEditorContribution {
 	public static ID = 'editor.contrib.vimmodeController';
-	readonly editor: ICodeEditor;
 	private mode: VimMode;
 
-	constructor(editor: ICodeEditor) {
-		this.editor = editor;
+	constructor(private readonly editor: ICodeEditor) {
 		this.mode = VimMode.Normal;
 
 		this.updateCursorStyle();
@@ -32,31 +31,32 @@ export class VimModeController implements IEditorContribution {
 		return editor.getContribution<VimModeController>(VimModeController.ID);
 	}
 
-	public switchMode() {
-		if (this.mode === VimMode.Insert) {
-			this.mode = VimMode.Normal;
-		} else {
-			this.mode = VimMode.Insert;
-		}
-
+	public switchMode(mode: VimMode) {
+		this.mode = mode;
 		this.updateCursorStyle();
 	}
 
 	updateCursorStyle() {
-		const options = this.editor.getRawOptions();
-
+		let cursorStyle:
+			| ReturnType<ICodeEditor['getRawOptions']>['cursorStyle']
+			| undefined;
 		if (this.mode === VimMode.Normal) {
-			options.cursorStyle = 'block';
+			cursorStyle = 'block';
 		}
 		if (this.mode === VimMode.Insert) {
-			options.cursorStyle = 'line';
+			cursorStyle = 'line';
 		}
 		if (this.mode === VimMode.VisualSelect) {
-			options.cursorStyle = 'underline-thin';
+			cursorStyle = 'underline-thin';
 		}
 
-		console.log(options.cursorStyle);
-		this.editor.updateOptions(options);
+		this.editor.updateOptions({
+			cursorStyle,
+		});
+	}
+
+	getMode() {
+		return this.mode;
 	}
 
 	dispose(): void {}
@@ -80,6 +80,37 @@ class VimModeInsertCommand extends EditorAction {
 			label: 'Vim Mode - Insert',
 			precondition: EditorContextKeys.writable,
 			kbOpts: {
+				kbExpr: ContextKeyExpr.and(EditorContextKeys.editorTextFocus),
+				primary: KeyCode.KeyI,
+				secondary: [KeyCode.KeyA],
+				weight: KeybindingWeight.EditorContrib,
+			},
+		});
+	}
+
+	isSupported(): boolean {
+		return true;
+	}
+
+	run(accessor: ServicesAccessor, editor: ICodeEditor, args: any): void {
+		const controller = VimModeController.get(editor);
+		if (controller?.getMode() !== VimMode.Normal) {
+			return;
+		}
+
+		controller?.switchMode(VimMode.Insert);
+		return;
+	}
+}
+
+class VimModeNormalCommand extends EditorAction {
+	constructor() {
+		super({
+			id: 'editor.vimmode.normalMode',
+			alias: 'Vim Mode - Normal',
+			label: 'Vim Mode - Normal',
+			precondition: EditorContextKeys.writable,
+			kbOpts: {
 				kbExpr: EditorContextKeys.editorTextFocus,
 				primary: KeyMod.CtrlCmd | KeyCode.KeyC,
 				weight: KeybindingWeight.EditorContrib,
@@ -94,7 +125,7 @@ class VimModeInsertCommand extends EditorAction {
 	run(accessor: ServicesAccessor, editor: ICodeEditor, args: any): void {
 		const controller = VimModeController.get(editor);
 
-		controller?.switchMode();
+		controller?.switchMode(VimMode.Normal);
 		return;
 	}
 }
@@ -106,3 +137,4 @@ registerEditorContribution(
 );
 
 registerEditorAction(VimModeInsertCommand);
+registerEditorAction(VimModeNormalCommand);

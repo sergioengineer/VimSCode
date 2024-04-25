@@ -91,7 +91,10 @@ class VimModeInsertCommand extends EditorAction {
 			id: 'editor.vimmode.insertMode',
 			alias: 'Vim Mode - Insert',
 			label: 'Vim Mode - Insert',
-			precondition: ContextKeyExpr.equals('vimMode', VimMode.Normal),
+			precondition: ContextKeyExpr.equals(
+				VimModeController.MODE.key,
+				VimMode.Normal
+			),
 			kbOpts: {
 				primary: KeyCode.KeyI,
 				secondary: [KeyCode.KeyA],
@@ -120,8 +123,8 @@ class VimModeNormalCommand extends EditorAction {
 			alias: 'Vim Mode - Normal',
 			label: 'Vim Mode - Normal',
 			precondition: ContextKeyExpr.or(
-				ContextKeyExpr.equals('vimMode', VimMode.VisualSelect),
-				ContextKeyExpr.equals('vimMode', VimMode.Insert)
+				ContextKeyExpr.equals(VimModeController.MODE.key, VimMode.VisualSelect),
+				ContextKeyExpr.equals(VimModeController.MODE.key, VimMode.Insert)
 			),
 			kbOpts: {
 				primary: KeyMod.CtrlCmd | KeyCode.KeyC,

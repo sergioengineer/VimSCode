@@ -88,7 +88,7 @@ export class VimModeController implements IEditorContribution {
 class VimModeInsertCommand extends EditorAction {
 	constructor() {
 		super({
-			id: 'editor.vimmode.insertMode',
+			id: 'editor.vimmode.switchToInsertMode',
 			alias: 'Vim Mode - Insert',
 			label: 'Vim Mode - Insert',
 			precondition: ContextKeyExpr.equals(
@@ -119,7 +119,7 @@ class VimModeInsertCommand extends EditorAction {
 class VimModeNormalCommand extends EditorAction {
 	constructor() {
 		super({
-			id: 'editor.vimmode.normalMode',
+			id: 'editor.vimmode.switchToNormalMode',
 			alias: 'Vim Mode - Normal',
 			label: 'Vim Mode - Normal',
 			precondition: ContextKeyExpr.or(

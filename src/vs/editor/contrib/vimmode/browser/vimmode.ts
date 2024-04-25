@@ -13,17 +13,35 @@ import {
 	ServicesAccessor,
 } from 'vs/editor/browser/editorExtensions';
 import { IEditorContribution } from 'vs/editor/common/editorCommon';
-import { EditorContextKeys } from 'vs/editor/common/editorContextKeys';
-import { ContextKeyExpr } from 'vs/platform/contextkey/common/contextkey';
+import * as nls from 'vs/nls';
+import {
+	ContextKeyExpr,
+	IContextKey,
+	IContextKeyService,
+	RawContextKey,
+} from 'vs/platform/contextkey/common/contextkey';
 import { KeybindingWeight } from 'vs/platform/keybinding/common/keybindingsRegistry';
+
+export enum VimMode {
+	Normal,
+	VisualSelect,
+	Insert,
+}
 
 export class VimModeController implements IEditorContribution {
 	public static ID = 'editor.contrib.vimmodeController';
-	private mode: VimMode;
+	private mode: IContextKey<VimMode>;
+	static readonly MODE = new RawContextKey<VimMode>(
+		'vimMode',
+		VimMode.Normal,
+		nls.localize('vimMode', 'Which mode vim is on')
+	);
 
-	constructor(private readonly editor: ICodeEditor) {
-		this.mode = VimMode.Normal;
-
+	constructor(
+		private readonly editor: ICodeEditor,
+		@IContextKeyService contextKeyService: IContextKeyService
+	) {
+		this.mode = VimModeController.MODE.bindTo(contextKeyService);
 		this.updateCursorStyle();
 	}
 
@@ -32,7 +50,7 @@ export class VimModeController implements IEditorContribution {
 	}
 
 	public switchMode(mode: VimMode) {
-		this.mode = mode;
+		this.mode.set(mode);
 		this.updateCursorStyle();
 	}
 
@@ -40,13 +58,14 @@ export class VimModeController implements IEditorContribution {
 		let cursorStyle:
 			| ReturnType<ICodeEditor['getRawOptions']>['cursorStyle']
 			| undefined;
-		if (this.mode === VimMode.Normal) {
+		const mode = this.mode.get();
+		if (mode === VimMode.Normal) {
 			cursorStyle = 'block';
 		}
-		if (this.mode === VimMode.Insert) {
+		if (mode === VimMode.Insert) {
 			cursorStyle = 'line';
 		}
-		if (this.mode === VimMode.VisualSelect) {
+		if (mode === VimMode.VisualSelect) {
 			cursorStyle = 'underline-thin';
 		}
 
@@ -66,21 +85,14 @@ export class VimModeController implements IEditorContribution {
 	restoreViewState?(state: any): void {}
 }
 
-export enum VimMode {
-	Normal,
-	VisualSelect,
-	Insert,
-}
-
 class VimModeInsertCommand extends EditorAction {
 	constructor() {
 		super({
 			id: 'editor.vimmode.insertMode',
 			alias: 'Vim Mode - Insert',
 			label: 'Vim Mode - Insert',
-			precondition: EditorContextKeys.writable,
+			precondition: ContextKeyExpr.equals('vimMode', VimMode.Normal),
 			kbOpts: {
-				kbExpr: ContextKeyExpr.and(EditorContextKeys.editorTextFocus),
 				primary: KeyCode.KeyI,
 				secondary: [KeyCode.KeyA],
 				weight: KeybindingWeight.EditorContrib,
@@ -94,9 +106,7 @@ class VimModeInsertCommand extends EditorAction {
 
 	run(accessor: ServicesAccessor, editor: ICodeEditor, args: any): void {
 		const controller = VimModeController.get(editor);
-		if (controller?.getMode() !== VimMode.Normal) {
-			return;
-		}
+		console.log('insert command');
 
 		controller?.switchMode(VimMode.Insert);
 		return;
@@ -109,9 +119,11 @@ class VimModeNormalCommand extends EditorAction {
 			id: 'editor.vimmode.normalMode',
 			alias: 'Vim Mode - Normal',
 			label: 'Vim Mode - Normal',
-			precondition: EditorContextKeys.writable,
+			precondition: ContextKeyExpr.or(
+				ContextKeyExpr.equals('vimMode', VimMode.VisualSelect),
+				ContextKeyExpr.equals('vimMode', VimMode.Insert)
+			),
 			kbOpts: {
-				kbExpr: EditorContextKeys.editorTextFocus,
 				primary: KeyMod.CtrlCmd | KeyCode.KeyC,
 				weight: KeybindingWeight.EditorContrib,
 			},
@@ -125,6 +137,7 @@ class VimModeNormalCommand extends EditorAction {
 	run(accessor: ServicesAccessor, editor: ICodeEditor, args: any): void {
 		const controller = VimModeController.get(editor);
 
+		console.log('normal mode command');
 		controller?.switchMode(VimMode.Normal);
 		return;
 	}
